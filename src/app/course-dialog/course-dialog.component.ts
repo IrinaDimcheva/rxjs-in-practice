@@ -8,8 +8,8 @@ import {
 } from '@angular/core';
 import { FormBuilder, Validators, FormGroup } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { from } from 'rxjs';
-import { concatMap, filter } from 'rxjs/operators';
+import { from, fromEvent } from 'rxjs';
+import { concatMap, exhaustMap, filter } from 'rxjs/operators';
 import * as moment from 'moment';
 import { Course } from '../model/course';
 
@@ -22,7 +22,8 @@ export class CourseDialogComponent implements OnInit, AfterViewInit {
   form: FormGroup;
   course: Course;
 
-  @ViewChild('saveButton', { static: true }) saveButton: ElementRef;
+  @ViewChild('saveButton', { static: true, read: ElementRef })
+  saveButton: ElementRef;
   @ViewChild('searchInput', { static: true }) searchInput: ElementRef;
 
   constructor(
@@ -61,11 +62,15 @@ export class CourseDialogComponent implements OnInit, AfterViewInit {
     );
   }
 
-  ngAfterViewInit() {}
+  ngAfterViewInit() {
+    fromEvent(this.saveButton.nativeElement, 'click')
+      .pipe(exhaustMap(() => this.saveCourse(this.form.value)))
+      .subscribe();
+  }
 
   close() {
     this.dialogRef.close();
   }
 
-  save() {}
+  // save() {}
 }
