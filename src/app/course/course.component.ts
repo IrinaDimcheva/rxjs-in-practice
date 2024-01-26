@@ -6,7 +6,7 @@ import {
   ViewChild,
 } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { merge, fromEvent, Observable, concat } from 'rxjs';
+import { merge, fromEvent, Observable, concat, interval } from 'rxjs';
 import {
   debounceTime,
   distinctUntilChanged,
@@ -19,10 +19,13 @@ import {
   withLatestFrom,
   concatAll,
   shareReplay,
+  throttle,
+  throttleTime,
 } from 'rxjs/operators';
 import { Course } from '../model/course';
 import { Lesson } from '../model/lesson';
 import { createHttpObservable } from '../common/util';
+import { RxJsLoggingLevel, debug, setRxJsLoggingLevel } from '../common/debug';
 
 @Component({
   selector: 'course',
@@ -40,18 +43,22 @@ export class CourseComponent implements OnInit, AfterViewInit {
 
   ngOnInit() {
     this.courseId = this.route.snapshot.params['id'];
-    this.course$ = createHttpObservable(
-      `/api/courses/${this.courseId}`
+    this.course$ = createHttpObservable(`/api/courses/${this.courseId}`).pipe(
+      debug(RxJsLoggingLevel.INFO, 'course value ')
     ) as Observable<Course>;
+
+    setRxJsLoggingLevel(RxJsLoggingLevel.TRACE);
   }
 
   ngAfterViewInit() {
     this.lessons$ = fromEvent(this.input.nativeElement, 'keyup').pipe(
       map((event: InputEvent) => (event.target as HTMLInputElement).value),
       startWith(''),
+      debug(RxJsLoggingLevel.TRACE, 'search '),
       debounceTime(400),
       distinctUntilChanged(),
-      switchMap((search) => this.loadLessons(search))
+      switchMap((search) => this.loadLessons(search)),
+      debug(RxJsLoggingLevel.DEBUG, 'lessons value ')
     );
   }
 
