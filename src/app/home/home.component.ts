@@ -1,6 +1,14 @@
 import { Component, OnInit } from '@angular/core';
-import { Observable, of, throwError } from 'rxjs';
-import { catchError, finalize, map, shareReplay, tap } from 'rxjs/operators';
+import { Observable, of, throwError, timer } from 'rxjs';
+import {
+  catchError,
+  delayWhen,
+  finalize,
+  map,
+  retryWhen,
+  shareReplay,
+  tap,
+} from 'rxjs/operators';
 
 import { createHttpObservable } from '../common/util';
 import { Course } from '../model/course';
@@ -17,16 +25,10 @@ export class HomeComponent implements OnInit {
   ngOnInit() {
     const http$ = createHttpObservable('/api/courses');
     const courses$: Observable<Course[]> = http$.pipe(
-      catchError((err) => {
-        console.log('Error occurred', err);
-        return throwError(err);
-      }),
-      finalize(() => {
-        console.log('Finalize executed...');
-      }),
       tap(() => console.log('HTTP request executed')),
       map((res) => Object.values(res['payload'])),
-      shareReplay()
+      shareReplay(),
+      retryWhen((errors) => errors.pipe(delayWhen(() => timer(2000))))
     ) as Observable<Course[]>;
 
     this.beginnersCourses$ = courses$.pipe(
