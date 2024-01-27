@@ -12,13 +12,14 @@ import { from, fromEvent } from 'rxjs';
 import { concatMap, exhaustMap, filter } from 'rxjs/operators';
 import * as moment from 'moment';
 import { Course } from '../model/course';
+import { Store } from '../common/store.service';
 
 @Component({
   selector: 'course-dialog',
   templateUrl: './course-dialog.component.html',
   styleUrls: ['./course-dialog.component.css'],
 })
-export class CourseDialogComponent implements OnInit, AfterViewInit {
+export class CourseDialogComponent implements AfterViewInit {
   form: FormGroup;
   course: Course;
 
@@ -29,7 +30,8 @@ export class CourseDialogComponent implements OnInit, AfterViewInit {
   constructor(
     private fb: FormBuilder,
     private dialogRef: MatDialogRef<CourseDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) course: Course
+    @Inject(MAT_DIALOG_DATA) course: Course,
+    private store: Store
   ) {
     this.course = course;
 
@@ -41,36 +43,16 @@ export class CourseDialogComponent implements OnInit, AfterViewInit {
     });
   }
 
-  ngOnInit() {
-    this.form.valueChanges
-      .pipe(
-        filter(() => this.form.valid),
-        concatMap((changes) => this.saveCourse(changes))
-      )
-      .subscribe();
-  }
+  ngAfterViewInit() {}
 
-  saveCourse(changes: Course) {
-    return from(
-      fetch(`/api/courses/${this.course.id}`, {
-        method: 'PUT',
-        body: JSON.stringify(changes),
-        headers: {
-          'content-type': 'application/json',
-        },
-      })
+  save() {
+    this.store.saveCourse(this.course.id, this.form.value).subscribe(
+      () => this.close(),
+      (err) => console.log('Error saving course', err)
     );
-  }
-
-  ngAfterViewInit() {
-    fromEvent(this.saveButton.nativeElement, 'click')
-      .pipe(exhaustMap(() => this.saveCourse(this.form.value)))
-      .subscribe();
   }
 
   close() {
     this.dialogRef.close();
   }
-
-  // save() {}
 }

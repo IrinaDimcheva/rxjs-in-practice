@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, timer } from 'rxjs';
+import { BehaviorSubject, Observable, from, timer } from 'rxjs';
 import { Course } from '../model/course';
 import { createHttpObservable } from './util';
 import { map, tap } from 'rxjs/operators';
@@ -31,6 +31,31 @@ export class Store {
   filterByCategory(category: string) {
     return this.courses$.pipe(
       map((courses) => courses.filter((course) => course.category === category))
+    );
+  }
+
+  saveCourse(courseId: number, changes: Partial<Course>): Observable<any> {
+    // optimistically modify the course in-memory
+    const courses = this.subject.getValue();
+    const courseIndex = courses.findIndex((course) => course.id === courseId);
+    const newCourses = courses.slice();
+
+    newCourses[courseIndex] = {
+      ...courses[courseIndex],
+      ...changes,
+    };
+
+    this.subject.next(newCourses);
+
+    // make a backend request to save the changes
+    return from(
+      fetch(`/api/courses/${courseId}`, {
+        method: 'PUT',
+        body: JSON.stringify(changes),
+        headers: {
+          'content-type': 'application/json',
+        },
+      })
     );
   }
 }
